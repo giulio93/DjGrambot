@@ -4,6 +4,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	youtube "github.com/kkdai/youtube/v2"
@@ -29,9 +31,16 @@ func main() {
 			continue
 		}
 
-		link := linkToDownload(update)
+		var msg tgbotapi.MessageConfig
+		if update.Message.ViaBot != nil && update.Message.ViaBot.UserName == "vid" {
 
-		msg := downloadVideo(update, link)
+			link := update.Message.Text
+
+			msg = downloadVideo(update, link)
+
+		} else {
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Please select a video using @vid bot")
+		}
 
 		if _, err := bot.Send(msg); err != nil {
 			log.Panic(err)
@@ -117,11 +126,7 @@ func SendLink(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 
 func linkToDownload(update tgbotapi.Update) string {
 
-	if update.Message.ViaBot.IsBot && update.Message.ViaBot.UserName == "vid" {
-
-		return update.Message.Text
-	}
-	return "Please use @vid nameofthevideo"
+	return "user"
 
 }
 
@@ -145,8 +150,9 @@ func downloadVideo(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 	if err != nil {
 		panic(err)
 	}
-
-	file, err := os.Create("video.mp4")
+	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
+	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
+	file, err := os.Create("playlist/" + fileTitle + ".mp4")
 	if err != nil {
 		panic(err)
 	}
