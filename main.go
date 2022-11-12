@@ -27,7 +27,7 @@ func main() {
 			continue
 		}
 
-		msg := SendGif("1.gif", update)
+		msg := SendLink(update, "https://goo.gl/maps/UcAcxBp1a3QELZ3v6")
 		if _, err := bot.Send(msg); err != nil {
 			log.Panic(err)
 		}
@@ -94,7 +94,16 @@ func SendGif(path string, update tgbotapi.Update) tgbotapi.AnimationConfig {
 		Reader: f_reader,
 	}
 
-	msg := tgbotapi.NewAnimation(update.Message.Chat.ID, file)
+	return tgbotapi.NewAnimation(update.Message.Chat.ID, file)
 
-	return msg
+}
+
+func SendLocation(update tgbotapi.Update, lat float64, long float64) tgbotapi.LocationConfig {
+
+	return tgbotapi.NewLocation(update.Message.Chat.ID, lat, long)
+}
+
+func SendLink(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
+
+	return tgbotapi.NewMessage(update.Message.Chat.ID, link)
 }
