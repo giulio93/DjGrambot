@@ -139,13 +139,14 @@ func downloadVideo(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 		panic(err)
 	}
 
-	formats := video.Formats.WithAudioChannels() // only get videos with audio
+	formats := video.Formats.WithAudioChannels().Type("audio/mp4") // only get videos with audio
+
 	stream, _, err := client.GetStream(video, &formats[0])
 	if err != nil {
 		panic(err)
 	}
 
-	file, err := os.Create("video.mp3")
+	file, err := os.Create("video.mp4")
 	if err != nil {
 		panic(err)
 	}

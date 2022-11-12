@@ -13,7 +13,7 @@ A simple Telegram Bot in GO
 - Show keyboard and send the pressed key
 - Send a link
 - Send a position
-- Download a video using @vid bot
+- Download a video/audio using @vid bot
 
 ## Dependencies
 - [Go Telegram Bot API](https://go-telegram-bot-api.dev/getting-started/index.html)
