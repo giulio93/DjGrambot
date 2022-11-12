@@ -1,6 +1,6 @@
 # GO Telegram Bot
 
-A simple TelegramBot in GO
+A simple Telegram Bot in GO
 
 ## How to run
 
