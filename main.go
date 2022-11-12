@@ -1,10 +1,12 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	youtube "github.com/kkdai/youtube/v2"
 )
 
 func main() {
@@ -27,7 +29,10 @@ func main() {
 			continue
 		}
 
-		msg := SendLink(update, "https://goo.gl/maps/UcAcxBp1a3QELZ3v6")
+		link := linkToDownload(update)
+
+		msg := downloadVideo(update, link)
+
 		if _, err := bot.Send(msg); err != nil {
 			log.Panic(err)
 		}
@@ -49,6 +54,8 @@ func CommandHandler(update tgbotapi.Update) tgbotapi.MessageConfig {
 		msg.Text = "Hi :)"
 	case "status":
 		msg.Text = "I'm ok."
+	case "play":
+		msg.Text = update.Message.CommandArguments()
 	default:
 		msg.Text = "I don't know that command"
 	}
@@ -106,4 +113,49 @@ func SendLocation(update tgbotapi.Update, lat float64, long float64) tgbotapi.Lo
 func SendLink(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 
 	return tgbotapi.NewMessage(update.Message.Chat.ID, link)
+}
+
+func linkToDownload(update tgbotapi.Update) string {
+
+	if update.Message.ViaBot.IsBot && update.Message.ViaBot.UserName == "vid" {
+
+		return update.Message.Text
+	}
+	return "Please use @vid nameofthevideo"
+
+}
+
+func downloadVideo(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
+
+	client := youtube.Client{Debug: true}
+
+	videoID, err := youtube.ExtractVideoID(link)
+	if err != nil {
+		panic(err)
+	}
+
+	video, err := client.GetVideo(videoID)
+	if err != nil {
+		panic(err)
+	}
+
+	formats := video.Formats.WithAudioChannels() // only get videos with audio
+	stream, _, err := client.GetStream(video, &formats[0])
+	if err != nil {
+		panic(err)
+	}
+
+	file, err := os.Create("video.mp3")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, stream)
+	if err != nil {
+		panic(err)
+	}
+
+	return tgbotapi.NewMessage(update.Message.Chat.ID, "Downloaded")
+
 }
