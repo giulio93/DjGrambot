@@ -12,3 +12,5 @@ A simple TelegramBot in GO
 - Reply to specific commands
 - Upload and send gif
 - Show keyboard and send the pressed key
+- Send a link
+- Send a position
