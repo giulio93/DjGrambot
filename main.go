@@ -1,18 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	youtube "github.com/kkdai/youtube/v2"
 )
 
+var bot *tgbotapi.BotAPI
+var err error
+
 func main() {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
+	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
 	if err != nil {
 		panic(err)
 	}
@@ -21,9 +26,10 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	updateConfig := tgbotapi.NewUpdate(0)
-	updateConfig.Timeout = 30
+	updateConfig.Timeout = 90
 	updates := bot.GetUpdatesChan(updateConfig)
 
+	t := time.Now()
 	// Let's go through each update that we're getting from Telegram.
 	for update := range updates {
 
@@ -33,56 +39,67 @@ func main() {
 
 				link := update.Message.Text
 
-				go DownloadRoutine(bot, update, link)
+				err = DownloadRoutine(update, link)
+				if err != nil {
+					sendTextMessage(update, err.Error(), true)
+				}
 
 			} else {
 
-				msg := CommandHandler(update)
+				CommandHandler(update, &t)
 
-				if _, err := bot.Send(msg); err != nil {
-					log.Panic(err)
-				}
-
-			}
-		} else if update.CallbackQuery != nil {
-			// Respond to the callback query, telling Telegram to show the user
-			// a message with the data received.
-			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
-			if _, err := bot.Request(callback); err != nil {
-				panic(err)
 			}
 		}
 
 	}
 }
 
-func DownloadRoutine(bot *tgbotapi.BotAPI, update tgbotapi.Update, link string) {
+func DownloadRoutine(update tgbotapi.Update, link string) error {
 
-	filename := DownloadVideo(update, link)
-
+	filename, err := DownloadVideo(update, link)
+	if err != nil {
+		return err
+	}
 	msg := SendAudio(update, filename)
 	msg.ReplyToMessageID = update.Message.MessageID
 	if _, err := bot.Send(msg); err != nil {
-		log.Panic(err)
+		return err
+	}
+	return nil
+
+}
+
+func CommandHandler(update tgbotapi.Update, times *time.Time) {
+	// Extract the command from the Message.
+	switch update.Message.Command() {
+
+	case "help":
+		sendTextMessage(update, "Use this bot via @vid <you tube video>", false)
+
+	case "start":
+		fmt.Println(update.Message.Time().Unix() - times.Unix())
+		if update.Message.Time().Unix()-times.Unix() > 10 {
+			*times = update.Message.Time()
+			SendGif("gif/1.gif", update)
+			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video!", false)
+		}
+
+	default:
+		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video!", false)
 	}
 
 }
 
-func CommandHandler(update tgbotapi.Update) tgbotapi.MessageConfig {
+func sendTextMessage(update tgbotapi.Update, text string, replyToUpdate bool) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 
-	// Create a new MessageConfig. We don't have text yet,
-	// so we leave it empty.
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-
-	// Extract the command from the Message.
-	switch update.Message.Command() {
-	case "help":
-		msg.Text = "Use this bot via @vid"
-	default:
-		msg.Text = "Oh Mona! Devi usare @vid per scaricare un video!"
+	if replyToUpdate {
+		msg.ReplyToMessageID = update.Message.MessageID
 	}
 
-	return msg
+	if _, err := bot.Send(msg); err != nil {
+		log.Panic(err)
+	}
 
 }
 
@@ -112,7 +129,7 @@ func NumericKeyboard(update tgbotapi.Update) tgbotapi.MessageConfig {
 	return msg
 }
 
-func SendGif(path string, update tgbotapi.Update) tgbotapi.AnimationConfig {
+func SendGif(path string, update tgbotapi.Update) {
 	f_reader, err := os.Open(path)
 	if err != nil {
 		panic(err)
@@ -123,8 +140,11 @@ func SendGif(path string, update tgbotapi.Update) tgbotapi.AnimationConfig {
 		Reader: f_reader,
 	}
 
-	return tgbotapi.NewAnimation(update.Message.Chat.ID, file)
+	msg := tgbotapi.NewAnimation(update.Message.Chat.ID, file)
 
+	if _, err := bot.Send(msg); err != nil {
+		log.Panic(err)
+	}
 }
 
 func SendAudio(update tgbotapi.Update, filename string) tgbotapi.AudioConfig {
@@ -153,25 +173,25 @@ func SendLink(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 	return tgbotapi.NewMessage(update.Message.Chat.ID, link)
 }
 
-func DownloadVideo(update tgbotapi.Update, link string) string {
+func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 
 	client := youtube.Client{Debug: true}
 
 	videoID, err := youtube.ExtractVideoID(link)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	video, err := client.GetVideo(videoID)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	formats := video.Formats.WithAudioChannels().Type("audio/mp4") // only get videos with audio
 
 	stream, _, err := client.GetStream(video, &formats[0])
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
 	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
@@ -179,15 +199,15 @@ func DownloadVideo(update tgbotapi.Update, link string) string {
 
 		file, err := os.Create("playlist/" + fileTitle + ".mp4")
 		if err != nil {
-			panic(err)
+			return "", err
 		}
 		defer file.Close()
 
 		_, err = io.Copy(file, stream)
 		if err != nil {
-			panic(err)
+			return "", err
 		}
 	}
 
-	return fileTitle
+	return fileTitle, nil
 }
