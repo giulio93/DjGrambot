@@ -171,15 +171,18 @@ func DownloadVideo(update tgbotapi.Update, link string) string {
 	}
 	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
 	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
-	file, err := os.Create("playlist/" + fileTitle + ".mp4")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
+	if _, err := os.Stat("playlist/" + fileTitle + ".mp4"); err != nil {
 
-	_, err = io.Copy(file, stream)
-	if err != nil {
-		panic(err)
+		file, err := os.Create("playlist/" + fileTitle + ".mp4")
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, stream)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return fileTitle

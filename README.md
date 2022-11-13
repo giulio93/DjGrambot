@@ -14,7 +14,14 @@ A simple Telegram Bot in GO
 - Send a link
 - Send a position
 - Download a video/audio using @vid bot
+- Reply to the @vid with the downloaded audio
+
+## TODO
+- Error Handling during video download
+- Go routine for the download method
+- Mixing track
 
 ## Dependencies
 - [Go Telegram Bot API](https://go-telegram-bot-api.dev/getting-started/index.html)
 - [Youtube downloader](github.com/kkdai/youtube)
+- [Mixing tracks](https://github.com/go-mix/mix)
