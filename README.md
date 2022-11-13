@@ -1,6 +1,5 @@
-# GO Telegram Bot
-
-A simple Telegram Bot in GO
+# DjGrambot - Go Telegram Bot
+A simple Telegram bot written in Go, that download and (will) mix your favourite music
 
 ## How to run this bot
 
@@ -21,7 +20,7 @@ A simple Telegram Bot in GO
 ### Bug fix
 
 - Handle errors during video download
-- Too many request error handle via timer
+- Too many request error handled via timer
 - Avoid streaming channels and playlist
 - Avoid download too long file
 
