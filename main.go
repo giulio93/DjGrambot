@@ -31,19 +31,24 @@ func main() {
 			continue
 		}
 
-		var msg tgbotapi.MessageConfig
 		if update.Message.ViaBot != nil && update.Message.ViaBot.UserName == "vid" {
 
 			link := update.Message.Text
 
-			msg = downloadVideo(update, link)
+			filename := DownloadVideo(update, link)
+
+			msg := SendAudio(update, filename)
+			if _, err := bot.Send(msg); err != nil {
+				log.Panic(err)
+			}
 
 		} else {
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Please select a video using @vid bot")
-		}
+			msg := CommandHandler(update)
 
-		if _, err := bot.Send(msg); err != nil {
-			log.Panic(err)
+			if _, err := bot.Send(msg); err != nil {
+				log.Panic(err)
+			}
+
 		}
 
 	}
@@ -58,15 +63,9 @@ func CommandHandler(update tgbotapi.Update) tgbotapi.MessageConfig {
 	// Extract the command from the Message.
 	switch update.Message.Command() {
 	case "help":
-		msg.Text = "I understand /sayhi and /status."
-	case "sayhi":
-		msg.Text = "Hi :)"
-	case "status":
-		msg.Text = "I'm ok."
-	case "play":
-		msg.Text = update.Message.CommandArguments()
+		msg.Text = "Use this bot via @vid"
 	default:
-		msg.Text = "I don't know that command"
+		msg.Text = "Oh Mona! Devi usare @vid per scaricare un video!"
 	}
 
 	return msg
@@ -114,6 +113,22 @@ func SendGif(path string, update tgbotapi.Update) tgbotapi.AnimationConfig {
 
 }
 
+func SendAudio(update tgbotapi.Update, filename string) tgbotapi.AudioConfig {
+
+	f_reader, err := os.Open("playlist/" + filename + ".mp4")
+	if err != nil {
+		panic(err)
+	}
+
+	file := tgbotapi.FileReader{
+		Name:   filename,
+		Reader: f_reader,
+	}
+
+	return tgbotapi.NewAudio(update.Message.Chat.ID, file)
+
+}
+
 func SendLocation(update tgbotapi.Update, lat float64, long float64) tgbotapi.LocationConfig {
 
 	return tgbotapi.NewLocation(update.Message.Chat.ID, lat, long)
@@ -124,13 +139,7 @@ func SendLink(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 	return tgbotapi.NewMessage(update.Message.Chat.ID, link)
 }
 
-func linkToDownload(update tgbotapi.Update) string {
-
-	return "user"
-
-}
-
-func downloadVideo(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
+func DownloadVideo(update tgbotapi.Update, link string) string {
 
 	client := youtube.Client{Debug: true}
 
@@ -163,6 +172,5 @@ func downloadVideo(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 		panic(err)
 	}
 
-	return tgbotapi.NewMessage(update.Message.Chat.ID, "Downloaded")
-
+	return fileTitle
 }
