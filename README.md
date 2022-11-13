@@ -27,9 +27,11 @@ A simple Telegram bot written in Go, that download and (will) mix your favourite
 
 
 ## TODO
+- Mixing track
 - Get the local playlist
 - Get the list of command
-- Mixing track
+- Show download percentage
+
 
 ## Dependencies
 - [Go Telegram Bot API](https://go-telegram-bot-api.dev/getting-started/index.html)
