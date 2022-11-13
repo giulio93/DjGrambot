@@ -24,31 +24,41 @@ func main() {
 	updateConfig.Timeout = 30
 	updates := bot.GetUpdatesChan(updateConfig)
 
+	//canal := make(chan string)
+	filename := ""
 	// Let's go through each update that we're getting from Telegram.
 	for update := range updates {
 
-		if update.Message == nil { // ignore any non-Message updates
-			continue
-		}
+		if update.Message != nil { // ignore any non-Message updates
 
-		if update.Message.ViaBot != nil && update.Message.ViaBot.UserName == "vid" {
+			if update.Message.ViaBot != nil && update.Message.ViaBot.UserName == "vid" {
 
-			link := update.Message.Text
+				link := update.Message.Text
 
-			filename := DownloadVideo(update, link)
+				filename = DownloadVideo(update, link)
 
-			msg := SendAudio(update, filename)
-			if _, err := bot.Send(msg); err != nil {
-				log.Panic(err)
+				msg := SendAudio(update, filename)
+				msg.ReplyToMessageID = update.Message.MessageID
+				if _, err := bot.Send(msg); err != nil {
+					log.Panic(err)
+				}
+
+			} else {
+
+				msg := CommandHandler(update)
+
+				if _, err := bot.Send(msg); err != nil {
+					log.Panic(err)
+				}
+
 			}
-
-		} else {
-			msg := CommandHandler(update)
-
-			if _, err := bot.Send(msg); err != nil {
-				log.Panic(err)
+		} else if update.CallbackQuery != nil {
+			// Respond to the callback query, telling Telegram to show the user
+			// a message with the data received.
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+			if _, err := bot.Request(callback); err != nil {
+				panic(err)
 			}
-
 		}
 
 	}
