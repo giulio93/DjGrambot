@@ -22,13 +22,14 @@ A simple Telegram Bot in GO
 
 - Handle errors during video download
 - Too many request error handle via timer
+- Avoid streaming channels and playlist
+- Avoid download too long file
+
 
 
 ## TODO
-- Avoid download long file like playlist
 - Get the local playlist
 - Get the list of command
-- Go routine for the download method
 - Mixing track
 
 ## Dependencies

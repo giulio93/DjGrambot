@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +18,7 @@ var bot *tgbotapi.BotAPI
 var err error
 
 func main() {
+
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
 	if err != nil {
 		panic(err)
@@ -39,10 +41,7 @@ func main() {
 
 				link := update.Message.Text
 
-				err = DownloadRoutine(update, link)
-				if err != nil {
-					sendTextMessage(update, err.Error(), true)
-				}
+				go DownloadRoutine(update, link)
 
 			} else {
 
@@ -54,18 +53,24 @@ func main() {
 	}
 }
 
-func DownloadRoutine(update tgbotapi.Update, link string) error {
+func DownloadRoutine(update tgbotapi.Update, link string) {
 
 	filename, err := DownloadVideo(update, link)
 	if err != nil {
-		return err
+		sendTextMessage(update, err.Error(), true)
+		return
 	}
-	msg := SendAudio(update, filename)
+	msg, err := SendAudio(update, filename)
+	if err != nil {
+		sendTextMessage(update, err.Error(), true)
+		return
+	}
 	msg.ReplyToMessageID = update.Message.MessageID
 	if _, err := bot.Send(msg); err != nil {
-		return err
+		sendTextMessage(update, err.Error(), true)
+		return
+
 	}
-	return nil
 
 }
 
@@ -80,7 +85,10 @@ func CommandHandler(update tgbotapi.Update, times *time.Time) {
 		fmt.Println(update.Message.Time().Unix() - times.Unix())
 		if update.Message.Time().Unix()-times.Unix() > 10 {
 			*times = update.Message.Time()
-			SendGif("gif/1.gif", update)
+			err := SendGif("gif/1.gif", update)
+			if err != nil {
+				sendTextMessage(update, err.Error(), true)
+			}
 			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video!", false)
 		}
 
@@ -129,10 +137,10 @@ func NumericKeyboard(update tgbotapi.Update) tgbotapi.MessageConfig {
 	return msg
 }
 
-func SendGif(path string, update tgbotapi.Update) {
+func SendGif(path string, update tgbotapi.Update) error {
 	f_reader, err := os.Open(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	file := tgbotapi.FileReader{
@@ -143,15 +151,16 @@ func SendGif(path string, update tgbotapi.Update) {
 	msg := tgbotapi.NewAnimation(update.Message.Chat.ID, file)
 
 	if _, err := bot.Send(msg); err != nil {
-		log.Panic(err)
+		return err
 	}
+	return nil
 }
 
-func SendAudio(update tgbotapi.Update, filename string) tgbotapi.AudioConfig {
+func SendAudio(update tgbotapi.Update, filename string) (tgbotapi.AudioConfig, error) {
 
 	f_reader, err := os.Open("playlist/" + filename + ".mp4")
 	if err != nil {
-		panic(err)
+		return tgbotapi.AudioConfig{}, err
 	}
 
 	file := tgbotapi.FileReader{
@@ -159,7 +168,7 @@ func SendAudio(update tgbotapi.Update, filename string) tgbotapi.AudioConfig {
 		Reader: f_reader,
 	}
 
-	return tgbotapi.NewAudio(update.Message.Chat.ID, file)
+	return tgbotapi.NewAudio(update.Message.Chat.ID, file), nil
 
 }
 
@@ -185,6 +194,11 @@ func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 	video, err := client.GetVideo(videoID)
 	if err != nil {
 		return "", err
+	}
+
+	if video.Duration.Minutes() > 10 {
+		fmt.Println(video.Duration.Minutes())
+		return "", errors.New("This video is too long, i don't support streaming or playlist")
 	}
 
 	formats := video.Formats.WithAudioChannels().Type("audio/mp4") // only get videos with audio
