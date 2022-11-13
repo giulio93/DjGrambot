@@ -24,8 +24,6 @@ func main() {
 	updateConfig.Timeout = 30
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	//canal := make(chan string)
-	filename := ""
 	// Let's go through each update that we're getting from Telegram.
 	for update := range updates {
 
@@ -35,13 +33,7 @@ func main() {
 
 				link := update.Message.Text
 
-				filename = DownloadVideo(update, link)
-
-				msg := SendAudio(update, filename)
-				msg.ReplyToMessageID = update.Message.MessageID
-				if _, err := bot.Send(msg); err != nil {
-					log.Panic(err)
-				}
+				go DownloadRoutine(bot, update, link)
 
 			} else {
 
@@ -62,6 +54,18 @@ func main() {
 		}
 
 	}
+}
+
+func DownloadRoutine(bot *tgbotapi.BotAPI, update tgbotapi.Update, link string) {
+
+	filename := DownloadVideo(update, link)
+
+	msg := SendAudio(update, filename)
+	msg.ReplyToMessageID = update.Message.MessageID
+	if _, err := bot.Send(msg); err != nil {
+		log.Panic(err)
+	}
+
 }
 
 func CommandHandler(update tgbotapi.Update) tgbotapi.MessageConfig {
