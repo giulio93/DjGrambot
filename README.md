@@ -23,6 +23,7 @@ A simple Telegram bot written in Go, that download and (will) mix your favourite
 - Too many request error handled via timer
 - Avoid streaming channels and playlist
 - Avoid download too long file
+- Find a faster way to writeFile
 
 
 

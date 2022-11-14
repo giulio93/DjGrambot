@@ -55,19 +55,23 @@ func main() {
 
 func DownloadRoutine(update tgbotapi.Update, link string) {
 
+	policeEmoji := "\xF0\x9F\x9A\xA8"
+	clapboardEmoji := "\xF0\x9F\x8E\xAC"
+	speakerEmoji := "\xF0\x9F\x94\x8A"
+	envelopeEmoji := "\xE2\x9C\x89"
 	filename, err := DownloadVideo(update, link)
 	if err != nil {
-		sendTextMessage(update, err.Error(), true)
+		sendTextMessage(update, policeEmoji+err.Error()+clapboardEmoji, true)
 		return
 	}
 	msg, err := SendAudio(update, filename)
 	if err != nil {
-		sendTextMessage(update, err.Error(), true)
+		sendTextMessage(update, policeEmoji+err.Error()+speakerEmoji, true)
 		return
 	}
 	msg.ReplyToMessageID = update.Message.MessageID
 	if _, err := bot.Send(msg); err != nil {
-		sendTextMessage(update, err.Error(), true)
+		sendTextMessage(update, policeEmoji+err.Error()+envelopeEmoji, true)
 		return
 
 	}
@@ -89,11 +93,11 @@ func CommandHandler(update tgbotapi.Update, times *time.Time) {
 			if err != nil {
 				sendTextMessage(update, err.Error(), true)
 			}
-			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video!", false)
+			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video per esempio @vid <you tube video>!", false)
 		}
 
 	default:
-		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video!", false)
+		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video @vid esempio <you tube video>!!", false)
 	}
 
 }
@@ -109,32 +113,6 @@ func sendTextMessage(update tgbotapi.Update, text string, replyToUpdate bool) {
 		log.Panic(err)
 	}
 
-}
-
-func NumericKeyboard(update tgbotapi.Update) tgbotapi.MessageConfig {
-	var numericKeyboard = tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("1"),
-			tgbotapi.NewKeyboardButton("2"),
-			tgbotapi.NewKeyboardButton("3"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("4"),
-			tgbotapi.NewKeyboardButton("5"),
-			tgbotapi.NewKeyboardButton("6"),
-		),
-	)
-
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-
-	switch update.Message.Text {
-	case "open":
-		msg.ReplyMarkup = numericKeyboard
-	case "close":
-		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-	}
-
-	return msg
 }
 
 func SendGif(path string, update tgbotapi.Update) error {
@@ -198,7 +176,7 @@ func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 
 	if video.Duration.Minutes() > 10 {
 		fmt.Println(video.Duration.Minutes())
-		return "", errors.New("This video is too long, i don't support streaming or playlist")
+		return "", errors.New("this video is too long, i don't support streaming or playlist")
 	}
 
 	formats := video.Formats.WithAudioChannels().Type("audio/mp4") // only get videos with audio
@@ -210,6 +188,7 @@ func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
 	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
 	if _, err := os.Stat("playlist/" + fileTitle + ".mp4"); err != nil {
+		sendTextMessage(update, "\xF0\x9F\xA4\x98 Sto scaricando ==>"+fileTitle+" \xF0\x9F\x8E\xB5", true)
 
 		file, err := os.Create("playlist/" + fileTitle + ".mp4")
 		if err != nil {
@@ -224,4 +203,30 @@ func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 	}
 
 	return fileTitle, nil
+}
+
+func NumericKeyboard(update tgbotapi.Update) tgbotapi.MessageConfig {
+	var numericKeyboard = tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("1"),
+			tgbotapi.NewKeyboardButton("2"),
+			tgbotapi.NewKeyboardButton("3"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("4"),
+			tgbotapi.NewKeyboardButton("5"),
+			tgbotapi.NewKeyboardButton("6"),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+
+	switch update.Message.Text {
+	case "open":
+		msg.ReplyMarkup = numericKeyboard
+	case "close":
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+	}
+
+	return msg
 }
