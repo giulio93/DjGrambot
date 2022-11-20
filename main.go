@@ -83,7 +83,7 @@ func CommandHandler(update tgbotapi.Update, times *time.Time) {
 	switch update.Message.Command() {
 
 	case "help":
-		sendTextMessage(update, "Use this bot via @vid <you tube video>", false)
+		sendTextMessage(update, "Use this bot via @vid <youtube video>", false)
 
 	case "start":
 		fmt.Println(update.Message.Time().Unix() - times.Unix())
@@ -93,11 +93,11 @@ func CommandHandler(update tgbotapi.Update, times *time.Time) {
 			if err != nil {
 				sendTextMessage(update, err.Error(), true)
 			}
-			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video per esempio @vid <you tube video>!", false)
+			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video, per esempio: @vid <youtube video>!", false)
 		}
 
 	default:
-		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video @vid esempio <you tube video>!!", false)
+		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video  per esempio: @vid <youtube video>!", false)
 	}
 
 }
@@ -132,6 +132,7 @@ func SendGif(path string, update tgbotapi.Update) error {
 		return err
 	}
 	return nil
+
 }
 
 func SendAudio(update tgbotapi.Update, filename string) (tgbotapi.AudioConfig, error) {
