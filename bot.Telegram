@@ -1,0 +1,12 @@
+[Unit]
+Description=Telegram bot
+[Service]
+Restart=on-failure
+RestartSec=1s
+Environment="TELEGRAM_APITOKEN=xxxx:xxx"
+User=<user>
+WorkingDirectory=/home/pi/Desktop/DjGrambot
+ExecStart=/home/pi/Desktop/DjGrambot/djgrambot
+
+[Install]
+WantedBy=multi-user.target
