@@ -41,7 +41,7 @@ func main() {
 
 				link := update.Message.Text
 
-				DownloadRoutine(update, link)
+				go DownloadRoutine(update, link)
 
 			} else {
 
@@ -59,9 +59,11 @@ func DownloadRoutine(update tgbotapi.Update, link string) {
 	clapboardEmoji := "\xF0\x9F\x8E\xAC"
 	speakerEmoji := "\xF0\x9F\x94\x8A"
 	envelopeEmoji := "\xE2\x9C\x89"
+	sadface := "\xF0\x9F\x98\xA2"
 	filename, err := DownloadVideo(update, link)
 	if err != nil {
-		sendTextMessage(update, policeEmoji+err.Error()+clapboardEmoji, true)
+		sorryMessage := "\n" + sadface + "Sorry i cannot download this video, try with another version of the same song" + speakerEmoji
+		sendTextMessage(update, policeEmoji+err.Error()+clapboardEmoji+sorryMessage, true)
 		return
 	}
 	msg, err := SendAudio(update, filename)
@@ -78,12 +80,57 @@ func DownloadRoutine(update tgbotapi.Update, link string) {
 
 }
 
+func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
+
+	client := youtube.Client{Debug: true}
+
+	videoID, err := youtube.ExtractVideoID(link)
+	if err != nil {
+		return "", err
+	}
+
+	video, err := client.GetVideo(videoID)
+	if err != nil {
+		return "", err
+	}
+
+	if video.Duration.Minutes() > 10 || video.Duration.Minutes() == 0 {
+		fmt.Println(video.Duration.Minutes())
+		return "", errors.New("this video is too long, i don't support streaming or playlist")
+	}
+
+	formats := video.Formats.WithAudioChannels().Type("audio/mp4") // only get videos with audio
+
+	stream, _, err := client.GetStream(video, &formats[0])
+	if err != nil {
+		return "", err
+	}
+	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
+	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
+	if _, err := os.Stat("playlist/" + fileTitle + ".mp4"); err != nil {
+		sendTextMessage(update, "\xF0\x9F\xA4\x98 Sto scaricando ==>"+fileTitle+" \xF0\x9F\x8E\xB5", true)
+
+		file, err := os.Create("playlist/" + fileTitle + ".mp4")
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, stream)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return fileTitle, nil
+}
+
 func CommandHandler(update tgbotapi.Update, times *time.Time) {
 	// Extract the command from the Message.
 	switch update.Message.Command() {
 
 	case "help":
-		sendTextMessage(update, "Use this bot via @vid <youtube video>", false)
+		sendTextMessage(update, "Use this bot via @vid <youtube video>, like: @vid one love", false)
 
 	case "start":
 		fmt.Println(update.Message.Time().Unix() - times.Unix())
@@ -93,11 +140,11 @@ func CommandHandler(update tgbotapi.Update, times *time.Time) {
 			if err != nil {
 				sendTextMessage(update, err.Error(), true)
 			}
-			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video, per esempio: @vid <youtube video>!", false)
+			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video, per esempio: @vid one love!", false)
 		}
 
 	default:
-		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video  per esempio: @vid <youtube video>!", false)
+		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video  per esempio: @vid one love!", false)
 	}
 
 }
@@ -159,51 +206,6 @@ func SendLocation(update tgbotapi.Update, lat float64, long float64) tgbotapi.Lo
 func SendLink(update tgbotapi.Update, link string) tgbotapi.MessageConfig {
 
 	return tgbotapi.NewMessage(update.Message.Chat.ID, link)
-}
-
-func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
-
-	client := youtube.Client{Debug: true}
-
-	videoID, err := youtube.ExtractVideoID(link)
-	if err != nil {
-		return "", err
-	}
-
-	video, err := client.GetVideo(videoID)
-	if err != nil {
-		return "", err
-	}
-
-	if video.Duration.Minutes() > 10 || video.Duration.Minutes() == 0 {
-		fmt.Println(video.Duration.Minutes())
-		return "", errors.New("this video is too long, i don't support streaming or playlist")
-	}
-
-	formats := video.Formats.WithAudioChannels().Type("audio/mp4") // only get videos with audio
-
-	stream, _, err := client.GetStream(video, &formats[0])
-	if err != nil {
-		return "", err
-	}
-	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
-	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
-	if _, err := os.Stat("playlist/" + fileTitle + ".mp4"); err != nil {
-		sendTextMessage(update, "\xF0\x9F\xA4\x98 Sto scaricando ==>"+fileTitle+" \xF0\x9F\x8E\xB5", true)
-
-		file, err := os.Create("playlist/" + fileTitle + ".mp4")
-		if err != nil {
-			return "", err
-		}
-		defer file.Close()
-
-		_, err = io.Copy(file, stream)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return fileTitle, nil
 }
 
 func NumericKeyboard(update tgbotapi.Update) tgbotapi.MessageConfig {
