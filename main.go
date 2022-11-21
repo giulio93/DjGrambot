@@ -41,7 +41,7 @@ func main() {
 
 				link := update.Message.Text
 
-				go DownloadRoutine(update, link)
+				DownloadRoutine(update, link)
 
 			} else {
 
@@ -175,7 +175,7 @@ func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 		return "", err
 	}
 
-	if video.Duration.Minutes() > 10 {
+	if video.Duration.Minutes() > 10 || video.Duration.Minutes() == 0 {
 		fmt.Println(video.Duration.Minutes())
 		return "", errors.New("this video is too long, i don't support streaming or playlist")
 	}
