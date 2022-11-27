@@ -108,7 +108,7 @@ func DownloadVideo(update tgbotapi.Update, link string) (string, error) {
 	regexTitle := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(video.Title, "")
 	fileTitle := regexTitle + "-" + strconv.Itoa(formats[0].AverageBitrate)
 	if _, err := os.Stat("playlist/" + fileTitle + ".mp4"); err != nil {
-		sendTextMessage(update, "\xF0\x9F\xA4\x98 Sto scaricando ==>"+fileTitle+" \xF0\x9F\x8E\xB5", true)
+		sendTextMessage(update, "\xF0\x9F\xA4\x98 In Download ==> "+fileTitle+" \xF0\x9F\x8E\xB5", true)
 
 		file, err := os.Create("playlist/" + fileTitle + ".mp4")
 		if err != nil {
@@ -130,21 +130,21 @@ func CommandHandler(update tgbotapi.Update, times *time.Time) {
 	switch update.Message.Command() {
 
 	case "help":
-		sendTextMessage(update, "Use this bot via @vid <youtube video>, like: @vid one love", false)
+		sendTextMessage(update, "Use this bot via @vid <youtube video>, like: @vid free bird", false)
 
 	case "start":
 		fmt.Println(update.Message.Time().Unix() - times.Unix())
 		if update.Message.Time().Unix()-times.Unix() > 10 {
 			*times = update.Message.Time()
-			err := SendGif("gif/1.gif", update)
+			err := SendGif("gif/demo.gif", update)
 			if err != nil {
 				sendTextMessage(update, err.Error(), true)
 			}
-			sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video, per esempio: @vid one love!", false)
+			sendTextMessage(update, "Use this bot via @vid <youtube video>, like: @vid free bird", false)
 		}
 
 	default:
-		sendTextMessage(update, "Oh Mona! Devi usare @vid per scaricare un video  per esempio: @vid one love!", false)
+		sendTextMessage(update, "Use this bot via @vid <youtube video>, like: @vid free bird", false)
 	}
 
 }
