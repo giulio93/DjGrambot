@@ -1,0 +1,19 @@
+// Create a systemd service
+// nano /etc/systemd/system/bot.service
+// systemctl daemon-reload
+// systemctl enable bot.service
+// systemctl start bot.service
+// journalctl -u bot.service --no-pager
+
+[Unit]
+Description=Telegram bot
+[Service]
+Restart=on-failure
+RestartSec=10s
+Environment="TELEGRAM_APITOKEN=xxxx:xxx"
+User=<user>
+WorkingDirectory=$HOME/<user>/Desktop/DjGrambot
+ExecStart=$HOME/<user>/Desktop/DjGrambot/djgrambot
+
+[Install]
+WantedBy=multi-user.target
